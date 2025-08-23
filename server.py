@@ -1911,6 +1911,55 @@ def test_connection():
             'message': str(e)
         }), 500
 
+@app.route('/api/env-check', methods=['GET'])
+def env_check():
+    """診斷環境變數設定，檢查 DATABASE_URL 是否可讀取（不回傳明文密碼）。"""
+    try:
+        db_url = os.environ.get('DATABASE_URL')
+        present = db_url is not None and len(db_url) > 0
+
+        masked_url = None
+        has_sslmode = None
+        has_channel_binding = None
+
+        if present:
+            try:
+                # 遮蔽密碼：postgresql://user:*****@host/db?... 只保留帳號與主機
+                # 簡單遮蔽實作，避免在日誌或回應中外洩密碼
+                prefix, rest = db_url.split('://', 1)
+                if '@' in rest and ':' in rest.split('@')[0]:
+                    user_part, host_part = rest.split('@', 1)
+                    user_name = user_part.split(':', 1)[0]
+                    masked_url = f"{prefix}://{user_name}:****@{host_part}"
+                else:
+                    masked_url = f"{prefix}://****@{rest}"
+            except Exception:
+                masked_url = 'MASK_FAILED'
+
+            try:
+                lower_qs = db_url.lower()
+                has_sslmode = ('sslmode=' in lower_qs)
+                has_channel_binding = ('channel_binding=' in lower_qs)
+            except Exception:
+                has_sslmode = False
+                has_channel_binding = False
+
+        return jsonify({
+            'success': True,
+            'database_url_present': present,
+            'masked_database_url': masked_url,
+            'flags': {
+                'sslmode_param_found': has_sslmode,
+                'channel_binding_param_found': has_channel_binding
+            }
+        })
+    except Exception as e:
+        logger.error(f"env-check 發生錯誤: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
     """獲取資料庫統計信息"""
