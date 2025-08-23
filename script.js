@@ -667,7 +667,7 @@ class TaiwanStockApp {
             
             // 獲取股票代碼
             this.addLogMessage('抓取台灣股票代碼...', 'info');
-            const symbolsResponse = await fetch('http://localhost:5003/api/symbols');
+            const symbolsResponse = await fetch('/api/symbols');
             
             if (!symbolsResponse.ok) {
                 throw new Error('無法連接到 API 服務器');
@@ -759,7 +759,7 @@ class TaiwanStockApp {
                                 end_date: endDate
                             };
 
-                            const resp = await fetch('http://localhost:5003/api/update', {
+                            const resp = await fetch('/api/update', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(singleUpdateData)
@@ -840,7 +840,7 @@ class TaiwanStockApp {
             this.addLogMessage('📊 正在統計資料庫儲存結果...', 'info');
             try {
                 // 查詢資料庫中的總數據量
-                const statsResponse = await fetch('http://localhost:5003/api/health');
+                const statsResponse = await fetch('/api/health');
                 if (statsResponse.ok) {
                     const statsData = await statsResponse.json();
                     
@@ -1400,7 +1400,7 @@ class TaiwanStockApp {
         if (startDate) params.append('start', startDate);
         if (endDate) params.append('end', endDate);
         
-        const response = await fetch(`http://localhost:5003/api/stock/${symbol}/prices?${params}`);
+        const response = await fetch(`/api/stock/${symbol}/prices?${params}`);
         
         if (!response.ok) {
             throw new Error(`查詢失敗: HTTP ${response.status}`);
@@ -1431,7 +1431,7 @@ class TaiwanStockApp {
                 if (startDate) params.append('start', startDate);
                 if (endDate) params.append('end', endDate);
                 
-                const response = await fetch(`http://localhost:5003/api/stock/${symbol}/prices?${params}`);
+                const response = await fetch(`/api/stock/${symbol}/prices?${params}`);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -1558,7 +1558,7 @@ setApiHealthStatus(statusText, status) {
 
 async pollApiHealthOnce() {
     try {
-        const resp = await fetch('http://localhost:5003/api/test-connection');
+        const resp = await fetch('/api/test-connection');
         const data = await resp.json();
         if (data && data.success) {
             this.setApiHealthStatus('正常', 'up');
@@ -1697,7 +1697,7 @@ async querySingleStockReturn(symbol, startDate, endDate, frequency = 'daily') {
     if (endDate) params.append('end', endDate);
     params.append('frequency', frequency);
     
-    const response = await fetch(`http://localhost:5003/api/stock/${symbol}/returns?${params}`);
+    const response = await fetch(`/api/stock/${symbol}/returns?${params}`);
     
     if (!response.ok) {
         throw new Error(`查詢失敗: HTTP ${response.status}`);
@@ -1736,7 +1736,7 @@ async queryMultiStockReturn(symbols, startDate, endDate, frequency = 'daily') {
             if (endDate) params.append('end', endDate);
             params.append('frequency', frequency);
             
-            const response = await fetch(`http://localhost:5003/api/stock/${symbol}/returns?${params}`);
+            const response = await fetch(`/api/stock/${symbol}/returns?${params}`);
             
             if (response.ok) {
                 const data = await response.json();
@@ -1795,7 +1795,7 @@ async querySingleStockPrice(symbol, startDate, endDate) {
     if (startDate) params.append('start', startDate);
     if (endDate) params.append('end', endDate);
 
-    const response = await fetch(`http://localhost:5003/api/stock/${symbol}/prices?${params}`);
+    const response = await fetch(`/api/stock/${symbol}/prices?${params}`);
 
     if (!response.ok) {
         throw new Error(`查詢失敗: HTTP ${response.status}`);
@@ -1826,7 +1826,7 @@ async queryMultiStockPrice(symbols, startDate, endDate) {
             if (startDate) params.append('start', startDate);
             if (endDate) params.append('end', endDate);
             
-            const response = await fetch(`http://localhost:5003/api/stock/${symbol}/prices?${params}`);
+            const response = await fetch(`/api/stock/${symbol}/prices?${params}`);
             
             if (response.ok) {
                 const data = await response.json();
@@ -2993,7 +2993,7 @@ initQueryTypeOptions() {
 
     async checkDatabaseConnection() {
         try {
-            const response = await fetch('http://localhost:5003/api/test-connection');
+            const response = await fetch('/api/test-connection');
             const data = await response.json();
             
             if (data.success) {
@@ -3010,7 +3010,7 @@ initQueryTypeOptions() {
     async loadStatistics() {
         console.log('📊 載入統計數據...');
         try {
-            const response = await fetch('http://localhost:5003/api/statistics');
+            const response = await fetch('/api/statistics');
             const data = await response.json();
             
             if (data.success) {
@@ -3478,7 +3478,7 @@ initQueryTypeOptions() {
             this.addLogMessage('開始批量更新所有上市股票...', 'info');
 
             // 獲取所有上市股票代碼
-            const response = await fetch('http://localhost:5003/api/symbols');
+            const response = await fetch('/api/symbols');
             const result = await response.json();
             
             if (!result.success) {
