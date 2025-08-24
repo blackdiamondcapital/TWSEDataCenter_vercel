@@ -3,7 +3,7 @@
 // Rewrite hardcoded local API base to relative paths for deployment (e.g., Vercel)
 // This keeps local development working while making production calls relative to the current domain
 (() => {
-    const LOCAL_BASE = 'http://localhost:5003';
+    const API_BASE = '/api';
     const originalFetch = window.fetch.bind(window);
     window.fetch = (input, init) => {
         try {
