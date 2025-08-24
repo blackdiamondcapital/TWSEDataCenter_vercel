@@ -3,14 +3,7 @@
 const API_BASE = '/api';
 class TaiwanStockApp {
     constructor() {
-        this.dbConfig = {
-            host: 'localhost',
-            port: '5432',
-            user: 'postgres',
-            password: 's8304021',
-            dbname: 'postgres'
-        };
-        
+        // DB 連線設定由後端環境變數管理，前端不保存敏感資訊
         this.isUpdating = false;
         // Summary and logging state
         this.summary = { total: 0, processed: 0, success: 0, failed: 0 };
