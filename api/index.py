@@ -1,20 +1,13 @@
 # api/index.py
-from http.server import BaseHTTPRequestHandler
-import json, traceback
+# 作用：把既有的 Flask app 暴露為 WSGI 應用給 Vercel Python Runtime
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        try:
-            data = {"ok": True, "message": "Hello from Python on Vercel"}
-            body = json.dumps(data).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(body)
-        except Exception:
-            # 回 500，但把堆疊寫到日誌，避免白畫面
-            traceback.print_exc()
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"ok": False, "error": "internal"}).encode("utf-8"))
+try:
+    # 假設你原本的 Flask 主程式在 server.py，且有 app = Flask(__name__)
+    from server import app  # noqa: F401
+except Exception as e:  # 後備路徑：避免 import 失敗時完全掛掉，方便你排錯
+    from flask import Flask, jsonify
+    app = Flask(__name__)  # type: ignore
+
+    @app.get("/api/ping")
+    def _fallback_ping():
+        return jsonify({"ok": True, "warning": "fallback app is running", "import_error": str(e)}), 200
