@@ -24,6 +24,29 @@ class TaiwanStockApp {
     // 簡單延遲
     sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
+    // 帶詳細錯誤輸出的 fetch 輔助函式
+    async fetchJsonWithDetail(url, options = {}, label = '') {
+        const resp = await fetch(url, options);
+        const raw = await resp.text().catch(() => '');
+        if (!resp.ok) {
+            const snippet = raw ? raw.slice(0, 400) : '';
+            const prefix = label ? `${label} ` : '';
+            throw new Error(`${prefix}HTTP ${resp.status} ${resp.statusText || ''} - ${snippet}`.trim());
+        }
+        let data = null;
+        try {
+            data = raw ? JSON.parse(raw) : null;
+        } catch (_) {
+            // 非 JSON 回傳，直接帶回原文
+            return { raw };
+        }
+        if (data && data.success === false) {
+            const prefix = label ? `${label} ` : '';
+            throw new Error(`${prefix}${data.error || '後端回傳 success=false'}`);
+        }
+        return data;
+    }
+
     // 自動化實驗：依多組參數自動執行、等待完成並導出日誌
     async runAutoExperiments() {
         if (this.isUpdating) {
@@ -35,9 +58,9 @@ class TaiwanStockApp {
 
         try {
             // 定義參數組合（可依需求調整）
-            const batchSizes = [10, 30, 50];
-            const concurrencies = [10, 20, 40];
-            const interBatchDelays = [300];
+            const batchSizes = [5, 10];
+            const concurrencies = [3, 5];
+            const interBatchDelays = [1000];
 
             // 若 UI 有當前其它設定（如股票數量/日期），保留不動，只調效能參數
             for (const b of batchSizes) {
@@ -596,21 +619,21 @@ class TaiwanStockApp {
             batchSize: (() => {
                 const el = document.getElementById('inputBatchSize');
                 let v = parseInt(el?.value);
-                if (isNaN(v)) v = 10;
+                if (isNaN(v)) v = 5;
                 v = Math.max(1, Math.min(500, v));
                 return v;
             })(),
             concurrency: (() => {
                 const el = document.getElementById('inputConcurrency');
                 let v = parseInt(el?.value);
-                if (isNaN(v)) v = 20;
+                if (isNaN(v)) v = 5;
                 v = Math.max(1, Math.min(100, v));
                 return v;
             })(),
             interBatchDelay: (() => {
                 const el = document.getElementById('inputInterBatchDelay');
                 let v = parseInt(el?.value);
-                if (isNaN(v)) v = 300;
+                if (isNaN(v)) v = 1000;
                 v = Math.max(0, Math.min(5000, v));
                 return v;
             })()
@@ -742,17 +765,24 @@ class TaiwanStockApp {
                                 end_date: endDate
                             };
 
-                            const resp = await fetch(`${API_BASE}/update`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(singleUpdateData)
-                            });
-                            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                            const singleResult = await resp.json();
+                            try {
+                                const singleResult = await this.fetchJsonWithDetail(
+                                    `${API_BASE}/update`,
+                                    {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(singleUpdateData)
+                                    },
+                                    `更新 ${stock.symbol}`
+                                );
 
-                            const fetchEndTime = new Date();
-                            const fetchDuration = (fetchEndTime - fetchStartTime) / 1000;
-                            this.addLogMessage(`⏱️ 完成抓取 ${stock.symbol} (${stock.name}) 並匯入: ${fetchEndTime.toLocaleString('zh-TW')} (耗時 ${fetchDuration.toFixed(2)} 秒)`, 'info');
+                                const fetchEndTime = new Date();
+                                const fetchDuration = (fetchEndTime - fetchStartTime) / 1000;
+                                this.addLogMessage(`⏱️ 完成抓取 ${stock.symbol} (${stock.name}) 並匯入: ${fetchEndTime.toLocaleString('zh-TW')} (耗時 ${fetchDuration.toFixed(2)} 秒)`, 'info');
+                            } catch (err) {
+                                this.addLogMessage(`❌ ${stock.symbol} (${stock.name}) 失敗: ${err.message}`, 'error');
+                                throw err; // 讓上層並發控制記錄為 rejected
+                            }
 
                             if (singleResult.success && singleResult.results && singleResult.results.length > 0) {
                                 const result = singleResult.results[0];
@@ -1386,7 +1416,7 @@ class TaiwanStockApp {
         const response = await fetch(`${API_BASE}/stock/${symbol}/prices?${params}`);
         
         if (!response.ok) {
-            throw new Error(`查詢失敗: HTTP ${response.status}`);
+            throw new Error('查詢失敗: HTTP ' + response.status);
         }
         
         const data = await response.json();
@@ -3554,9 +3584,9 @@ initQueryTypeOptions() {
         const { progressFill, progressText, progressPercent, marketType } = progressElements;
         
         // 獲取效能參數
-        const batchSize = parseInt(document.getElementById('inputBatchSize')?.value || '10');
-        const concurrency = parseInt(document.getElementById('inputConcurrency')?.value || '20');
-        const interBatchDelay = parseInt(document.getElementById('inputInterBatchDelay')?.value || '300');
+        const batchSize = parseInt(document.getElementById('inputBatchSize')?.value || '5');
+        const concurrency = parseInt(document.getElementById('inputConcurrency')?.value || '5');
+        const interBatchDelay = parseInt(document.getElementById('inputInterBatchDelay')?.value || '1000');
 
         let completed = 0;
         let successful = 0;
